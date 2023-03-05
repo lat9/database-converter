@@ -46,7 +46,7 @@ $cdb = new ConvertDb();
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Zen-Cart&reg; Database Conversion Tool</title>
+    <title>Zen Cart&reg; Database Conversion Tool</title>
     <style>
     body {
         font-family: Arial, Helvetica, sans-serif;
@@ -103,7 +103,7 @@ $cdb = new ConvertDb();
 </head>
 <body>
     <div class="wrap">
-        <h1>Zen-Cart&reg; Database Conversion Tool</h1>
+        <h1>Zen Cart&reg; Database Conversion Tool</h1>
 <?php
 // -----
 // Retrieve the current database's tables and associated fields.

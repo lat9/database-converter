@@ -476,18 +476,24 @@ class ConvertDb
             $fields_updated++;
 
             // -----
+            // For right now, don't do the binary field-modification as that leads to data-loss if
+            // any non-alphanumeric characters are present in the database's text fields.
+            //
+/*
+            // -----
             // 'enum' field types don't get converted to binary!  See https://codex.wordpress.org/Converting_Database_Character_Sets
             // for details.
             //
             if ($alter_parameters['bin_type'] !== false) {
                 $sql_binary .= " MODIFY `$field_name` {$alter_parameters['bin_type']} {$alter_parameters['allow_null']} {$alter_parameters['default']},";
             }
+*/
             $sql_convert  .= " MODIFY `$field_name` {$alter_parameters['text_type']} CHARACTER SET $new_charset COLLATE $new_collation {$alter_parameters['allow_null']} {$alter_parameters['default']},";
         }
 
         if ($fields_updated !== 0) {
             $sql_binary = rtrim($sql_binary, ',');
-            if ($this->doQuery("ALTER TABLE `$table_name` $sql_binary") === false) {
+            if ($sql_binary !== '' && $this->doQuery("ALTER TABLE `$table_name` $sql_binary") === false) {
                 return false;
             }
            $sql_convert = rtrim($sql_convert, ',');
