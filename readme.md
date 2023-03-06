@@ -4,4 +4,4 @@ This contribution provides methods to correct various issues in a Zen Cart&reg;Â
 
 Zen Cart Support Thread: https://www.zen-cart.com/showthread.php?219246
 
-Refer to the [readme.html](https://htmlpreview.github.io/?https://github.com/lat9/database-converter/blob/2.0.0/readme.html) in this GitHub repository for additional details.
+Refer to the [readme.html](https://htmlpreview.github.io/?https://github.com/lat9/database-converter/blob/2.0.0/docs/database-converter/readme.html) in this GitHub repository for additional details.

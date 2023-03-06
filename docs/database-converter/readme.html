@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zen Cart Database Conversion Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
+    <style>
+        #navbar-contents {
+            z-index: -1;
+            position: static;
+        }
+
+        #main-container {
+            padding-top: 120px;
+        }
+
+        @media (min-width: 768px) {
+            #navbar-contents {
+                position: fixed;
+                z-index: initial;
+                max-width: 200px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            #navbar-contents {
+                max-width: 300px;
+            }
+        }
+
+        .nav-pills .nav-link.active {
+            background-color: #6e7581;
+        }
+    </style>
+</head>
+<body data-bs-spy="scroll" data-bs-target="#navbar-contents" data-bs-offset="100">
+    <header>
+        <nav id="navbar-header" class="navbar position-fixed navbar-light bg-light shadow-sm justify-content-center align-items-center container-fluid py-3">
+            <div class="container">
+            <h1 class="mb-1 fs-4">Zen Cart Database Conversion Tool</h1>
+                <div class="float-md-right text-center text-md-right mt-2 mt-md-0">
+                    <i class="bi-github me-1 align-top"></i> <a href="https://github.com/lat9/database-converter" target="_blank" class="link-secondary text-decoration-none me-4">GitHub Repository</a>
+                    <i class="bi-layout-text-sidebar-reverse me-1 align-top"></i> <a href="https://www.zen-cart.com/showthread.php?219246" target="_blank" class="link-secondary text-decoration-none">Support Thread</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container mb-5" id="main-container">
+        <div class="row">
+            <aside class="col-md-4 col-xxl-3">
+                <nav id="navbar-contents" class="navbar navbar-light bg-light flex-column align-items-stretch p-3 shadow-sm mt-4 mt-sm-3 mb-3 my-md-0">
+                    <nav class="nav nav-pills flex-column">
+                        <a class="nav-link link-secondary" href="#item-introduction">Introduction</a>
+                        <nav class="nav nav-pills flex-column">
+                            <a class="nav-link link-secondary ms-3 my-1" href="#item-credits">History and Credits</a>
+                        </nav>
+                        <a class="nav-link link-secondary" href="#item-prerequisites">Prerequisites</a>
+                        <a class="nav-link link-secondary" href="#item-installation">Installation</a>
+                        <a class="nav-link link-secondary" href="#item-usage">Usage</a>
+                        <nav class="nav nav-pills flex-column">
+                            <a class="nav-link link-secondary ms-3 my-1" href="#item-usage-files">Post-Conversion Updates</a>
+                        </nav>
+                        <a class="nav-link link-secondary" href="#item-uninstall">Uninstall</a>
+                        <a class="nav-link link-secondary" href="#item-faq">Troubleshooting</a>
+                        <nav class="nav nav-pills flex-column">
+                            <a class="nav-link link-secondary ms-3 my-1" href="#item-faq-missing-defaults">Database Fields Missing Defaults</a>
+                        </nav>
+                        <a class="nav-link link-secondary" href="#item-files-list">Files List</a>
+                        <a class="nav-link link-secondary" href="#item-changelog">Change History</a>
+                    </nav>
+                </nav>
+            </aside>
+            <article class="col-md-8 col-xxl-9 mt-4 mt-md-0 ps-md-4">
+                <section>
+                    <h1 id="item-introduction" class="display-1 fs-2 pb-2">Introduction</h1>
+                    <p>This tool can be used to:</p>
+                    <ol>
+                        <li>Convert your database to a <code>utf8</code> or <code>utf8mb4</code> character-set while retaining the integrity of non-ASCII characters, e.g. emojis and extended-ASCII like <code>îòñëåæèâàíèå äîïîëíèòåëüíûõ ýëåìåíòîâ</code>.</li>
+                        <li>Find (and correct) <code>date</code>, <code>datetime</code> and <code>timestamp</code> fields in the database that have invalid '0000-00-00 [00:00:00]' defaults and/or field values.  These defaults are no longer supported by strict MySQL servers.</li>
+                        <li>Find (and correct) <em>mixed-collation</em> issues in the database, where a table and/or fields in the database have different collations. If a database query compares two fields that have different collations, a MySQL fatal error will result in strict MySQL servers.</li>
+                    </ol>
+
+                    <h2 id="item-credits" class="fs-4 pt-1 pb-3">History and Credits</h2>
+                    <p>This tool is based on v4.1 of <code>convert_db2utf8.php</code> authored by Andrew Berezin and r1.2 of <code>utf8mb4-conversion.php</code> authored by DrByte, essentially combining those two plugins' processing.</p>
+                    <p>This readme's formatting based on that originally developed by <a href="https://github.com/marco-pm" _target="blank">@marco-pm</a>.</p>
+                </section>
+
+                <section>
+                    <h1 id="item-prerequisites" class="display-1 fs-2 pb-2 pt-4">Prerequisites</h1>
+                    <ul class="mt-3">
+                        <li>A Zen Cart database, with a <em>storefront</em> <code>/includes/configure.php</code> that identifies database credentials.</li>
+                        <li>Supports <em>optional</em> overrides provided by a storefront <code>/includes/local/configure.php</code>.</li>
+                        <li class="mt-1">PHP 5.6 through 8.2</li>
+                        <li>For best results, i.e. a database conversion to the <code>utf8mb4</code> character-set, the database must have been run through the <code>zc_install</code> procedure provided by Zen Cart 1.5.6 and later.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h1 id="item-installation" class="display-1 fs-2 pb-2 pt-4">Installation</h1>
+                    <p>To install this tool, simply copy its <a href="#item-files-list">two PHP files</a> to the root of your Zen Cart installation's file-system.  The files should reside in the same directory as <code>ipn_main_handler.php</code>.</p>
+                </section>
+
+                <section>
+                    <h1 id="item-usage" class="display-1 fs-2 pb-2 pt-4">Usage</h1>
+                    <p><i class="bi-exclamation-octagon-fill text-warning fs-3 me-1 align-middle"></i> Before you start, be sure to place your site into &quot;Maintenance Mode&quot; and make a backup and/or copy of your database!</p>
+                    <p>Once the tool is installed, navigate to <code>https://yoursite.com/convert_database.php</code>. When the tool starts, it will access your site's current database based on the information provided in the storefront <code>/includes/configure.php</code>.  If your site also has a <code>/includes/local/configure.php</code>, any database settings in that file will override the like-named settings in the 'base' file.</p>
+                    <p><i class="bi-exclamation-octagon-fill text-warning fs-3 me-1 align-middle"></i> Once you've finished with the tool, <a href="#item-uninstall">uninstall</a> the tool and take your site out of &quot;Maintenance Mode&quot;.</p>
+
+                    <h2 id="item-usage-files" class="fs-4 pt-1 pb-3">Post-Conversion Updates</h2>
+                    <p>If you've used the tool to make changes to your database's character-set and/or collations, there are a some additional hand-edits required:</p>
+                    <ol>
+                        <li>Each of the site's admin and storefront <code>configure.php</code> files require a review or change to ensure that the database's current character set is in use. The <code>DB_CHARSET</code> definitions' value should reflect the database's current character-set, as identified on the tool's display.</li>
+                        <li>If the site's <code>DB_CHARSET</code> is either 'utf8' or 'utf8mb4', some additional requirements exist for any language-related files:<ol type="a">
+                            <li><b>All</b> of your site's language-related files need to be encoded as &quot;UTF8-without-BOM&quot;; this is a function of your file-editor's &quot;Save&quot; or &quot;Encoding&quot; settings.</li>
+                            <li>The <code>$locales</code> array defined in <em>each</em> language's 'base' file, e.g. <code>english.php</code>, must include a utf8-based value <em>as its first element</em>. For example, the 'base' english language file's definition:<pre class="mt-1">$locales = ['en_US.utf8', 'en_US', 'en', 'English_United States.1252'];</pre></li>
+                            <li><em>Each</em> language's 'base' file, e.g. <code>english.php</code> must define the character-set as <code>utf-8</code>:<pre class="mt-2">define('CHARSET', 'utf-8');</pre></li>
+                        </ol></li>
+                    </ol>
+                </section>
+
+                <section>
+                    <h1 id="item-uninstall" class="display-1 fs-2 pb-2 pt-4">Uninstall</h1>
+                    <p>To uninstall this tool, which you <em>should</em> once it's served its purpose, simply remove its <a href="#item-files-list">two PHP files</a> from your site's file-system.</p>
+                </section>
+
+                <section>
+                    <h1 id="item-faq" class="display-1 fs-2 mt-6 pb-2 pt-4">Troubleshooting</h1>
+                    <p>If you encounter errors converting certain tables due to bad data in them, simply fix the bad data and then re-run the tool. The tool will recognize what has already been converted and continue with the last failed operation.</p>
+
+                    <p>While a full list of possible database issues is impossible to identify here, common bad-data issues might include:</p>
+                    <ul>
+                        <li>Invalid date formats in existing data; see the Zen Cart documentation on <a href="https://docs.zen-cart.com/user/upgrading/date_standardization/" target="_blank">date standardization</a>. The conversion tool will detect and correct these prior to any data conversions.</li>
+                        <li>Broken tables (such as broken auto-increments or corrupt indexes) which are usually fixed by simply running a 'repair' on the table either from phpMyAdmin's Operations tab or via your hosting control panel's databases page or by manually running <code>REPAIR TABLE tablename;</code> in phpMyAdmin.</li>
+                    </ul>
+
+                    <p>In most cases, the tool is able to correctly re-create all indexes that were originally on the tables. <em>However</em>, in some cases of failure due to bad data, the tool might have already deleted an index that it wasn't yet ready to re-create; in these cases you will have to recreate the index yourself.</p>
+                    <p>Troubleshooting this factor is technically advanced. You might want to consult the original mysql_zencart.sql install script for details of all the indexes that should exist on each table. An export of table-structure-only could make the inspection process quite simple.</p>
+                    
+                    <h2 id="item-faq-missing-defaults" class="fs-4 pt-1 pb-3">Database Fields Missing Defaults</h2>
+                    <p>Older versions of the <code>utf8mb4-conversion.php</code> script (prior to 2021-03-05) had a defect wherein blank defaults would not be recreated.  So, a field definition like
+                        <pre class="mt-1">customers_firstname varchar(32) NOT NULL default ''</pre>
+                        would become
+                        <pre class="mt-1">customers_firstname varchar(32) NOT NULL</pre>
+                        This has been corrected in follow-on versions of that script and in the current offering.</p>
+                    <p>To correct this, use the <code>optional/fix_blank_defaults.php</code> script as follows:</p>
+                    <p><i class="bi-exclamation-octagon-fill text-warning fs-3 me-1 align-middle"></i> Before you start, be sure to place your site into &quot;Maintenance Mode&quot; and make a backup and/or copy of your database!</p>
+                    <ol>
+                        <li>Upload the file <code>optional/fix_blank_defaults.php</code> to your store's root folder (same place as <code>ipn_main_handler.php</code>).</li>
+                        <li>Edit the PHP file to set your database username, password, dbname and prefix (if any).</li>
+                        <li>Use your browser to access the file. The conversion will show current progress as it proceeds.</li>
+                    </ol>
+                    <p><i class="bi-exclamation-octagon-fill text-warning fs-3 me-1 align-middle"></i> Once you've finished, delete the file from your store's root folder and take your site out of &quot;Maintenance Mode&quot;.</p>
+                </section>
+
+                <section>
+                    <h1 id="item-files-list" class="display-1 fs-2 pb-2 pt-4">Files List</h1>
+                    <p>The tool provides two <em>required</em> PHP files in its distribution:</p>
+                    <ul class="mt-2 text-break">
+                        <li><span class="font-monospace">/convert_database.php</span></li>
+                        <li><span class="font-monospace">/ConvertDb.php</span></li>
+                    </ul>
+                    <p>&hellip; and one <em>optional</em> file; see <a href="#item-faq-missing-defaults">this</a> readme section for usage instructions.</p>
+                    <ul class="mt-2 text-break">
+                        <li><span class="font-monospace">/optional/fix_database_defaults.php</span></li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h1 id="item-changelog" class="display-1 fs-2 pb-2 pt-4">Change History</h1>
+                    <p>You can view the details of these changes on the tool's <a href="https://github.com/lat9/database-converter" target="_blank" class="link-secondary">GitHub repository</a>.</p>
+                    <ul>
+                        <li>v2.0.0-beta1, 2023-03-06 (lat9):<ul>
+                            <li>CHANGE: Merge the <code>convert_db2utf8</code> and <code>utf8mb4-conversion</code> utilities.</li>
+                            <li>CHANGE: Migrate database-related actions to a separate class.</li>
+                            <li>BUGFIX: Check for (and correct) zero-date table/field issues prior to any character conversion.</li>
+                            <li>BUGFIX: &quot;Extended&quot; <code>latin1</code> characters weren't being converted to <code>utf8</code>.</li>
+                        </ul></li>
+                    </ul>
+                </section>
+            </article>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+</body>
+</html>
