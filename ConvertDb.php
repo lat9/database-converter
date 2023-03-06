@@ -230,6 +230,7 @@ class ConvertDb
                     $sql .= " CAST($field_name AS CHAR(10)) = '0000-00-00' OR";
                     break;
                 case 'datetime':
+                case 'timestamp':
                     $sql .= " CAST($field_name AS CHAR(19)) = '0000-00-00 00:00:00' OR";
                     break;
                 default:
@@ -274,6 +275,11 @@ class ConvertDb
                         $fields_to_update[$field_name] = '0001-01-01 00:00:00';
                     }
                     break;
+                case 'timestamp':
+                    if ($field_info['Default'] === "'0000-00-00 00:00:00'") {
+                        $fields_to_update[$field_name] = '1970-01-01 00:00:00';
+                    }
+                    break;
                 default:
                     break;
             }
@@ -308,9 +314,9 @@ class ConvertDb
             if ($field_info['Type'] === 'date') {
                 $zero_value = '0000-00-00';
                 $correct_value = '0001-01-01';
-            } elseif ($field_info['Type'] === 'datetime') {
+            } elseif ($field_info['Type'] === 'datetime' || $field_info['Type'] === 'timestamp') {
                 $zero_value = '0000-00-00 00:00:00';
-                $correct_value = '0001-01-01 00:00:00';
+                $correct_value = ($field_info['Type'] === 'datetime') ? '1970-01-01 00:00:00' : '0001-01-01 00:00:00';
             } else {
                 continue;
             }
@@ -667,7 +673,7 @@ class ConvertDb
                 $row['known_field_type'] = true;
                 $field_type = strtolower($row['Type']);
 
-                if ($field_type === 'date' || $field_type === 'datetime') {
+                if ($field_type === 'date' || $field_type === 'datetime' || $field_type === 'timestamp') {
                     $this->tables[$table_name]['info']['has_date_fields'] = true;
                 } elseif ($row['Charset'] !== null) {
                     $allow_null = (strtoupper($row['Null']) === 'YES') ? '' : 'NOT NULL';

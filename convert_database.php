@@ -75,7 +75,8 @@ $cdb = new ConvertDb();
     .text-center {
         text-align: center;
     }
-    .text-danger {
+    .text-danger,
+    sup {
         font-weight: bold;
         color: red;
     }
@@ -98,6 +99,10 @@ $cdb = new ConvertDb();
     }
     #zero-date-form, #fixcollations {
         margin-top: 1rem;
+    }
+    hr {
+        border-top: 2px dotted black;
+        border-bottom: none;
     }
     </style>
 </head>
@@ -199,7 +204,7 @@ if (isset($_POST['action'])) {
                 } elseif ($result !== 0) {
                     $zero_date_count += $result;
                     $zero_date_tables[] = $table_name;
-                    $messages[] = "$result date/datetime fields contain zero-date values in <code>$table_name</code>.";
+                    $messages[] = "$result date/datetime/timestamp fields contain zero-date values in <code>$table_name</code>.";
                 }
             }
             if ($result === false) {
@@ -426,7 +431,6 @@ if (isset($_POST['action'])) {
         <tr>
             <td>Database Character Set:</td>
 <?php
-    $error = false;
     $current_charset = strtolower($cdb->getCurrentDbCharset());
     $db_charset = strtolower(DB_CHARSET);
     if ($current_charset === $db_charset) {
@@ -454,6 +458,7 @@ if (isset($_POST['action'])) {
     </table>
 
     <table id="table-wrapper">
+        <caption><sup>1</sup> Identifies a table- or field-related collation issue that requires a database conversion for correction.</caption>
         <tr>
             <td><table id="tables-table">
                 <tr>
@@ -463,9 +468,36 @@ if (isset($_POST['action'])) {
                     <th>Table Issues</th>
                 </tr>
 <?php
-    $table_collation_mismatches = 0;
-    $field_collation_mismatches = 0;
-    $tables_with_collation_issues = [];
+    // -----
+    // Determine the character-sets for which any table/field mismatches can be
+    // corrected without a full database conversion and create the REGEX pattern
+    // used to determine if a table/field collation mismatch is correctable.
+    //
+    $correctable_charsets = [
+        'latin1',
+    ];
+    if ($current_charset === 'utf8') {
+        $correctable_charsets[] = 'utf8';
+    }
+    if ($current_charset === 'utf8mb4') {
+        $correctable_charsets[] = 'utf8mb4';
+    }
+    if (count($correctable_charsets) === 1) {
+        $regex_charset_pattern = $correctable_charsets[0];
+    } else {
+        $regex_charset_pattern = '(' . implode('|', $correctable_charsets) . ')';
+    }
+    $regex_charset_pattern = '/^' . $regex_charset_pattern . '_/';
+
+    // -----
+    // Loop through each of the database's tables and their associated fields to
+    // determine which operations can be presented.
+    //
+    $correctable_table_collation_mismatches = 0;
+    $correctable_field_collation_mismatches = 0;
+    $convertable_table_collation_mismatches = 0;
+    $convertable_field_collation_mismatches = 0;
+    $tables_with_correctable_collation_issues = [];
     $field_date_default_zero = 0;
     $unknown_field_type_count = 0;
     foreach ($tables as $table_name => $table_info) {
@@ -487,10 +519,16 @@ if (isset($_POST['action'])) {
         if ($table_collation === $current_db_collation) {
             $class = '';
         } else {
-            $table_collation_mismatches++;
-            $tables_with_collation_issues[] = $table_name;
+            $table_message = 'Table Collation Mismatch';
+            if (preg_match($regex_charset_pattern, $table_collation) !== 1) {
+                $table_message .= '<sup>1</sup>';
+                $convertable_table_collation_mismatches++;
+            } else {
+                $correctable_table_collation_mismatches++;
+                $tables_with_correctable_collation_issues[] = $table_name;
+            }
             $class = ' text-danger';
-            $issues[] = 'Table Collation Mismatch';
+            $issues[] = $table_message;
         }
 
         // -----
@@ -499,21 +537,27 @@ if (isset($_POST['action'])) {
         //
         foreach ($table_info['fields'] as $field_name => $field_info) {
             if ($field_info['Collation'] !== null && $field_info['Collation'] !== $current_db_collation) {
-                $field_collation_mismatches++;
-                $issues[] = "$field_name Collation Mismatch";
-                $tables_with_collation_issues[] = $table_name;
+                $field_message = "<code>$field_name</code> Collation Mismatch: <code>{$field_info['Collation']}</code>";
+                if (preg_match($regex_charset_pattern, $field_info['Collation']) !== 1) {
+                    $field_message .= '<sup>1</sup>';
+                    $convertable_field_collation_mismatches++;
+                } else {
+                    $correctable_field_collation_mismatches++;
+                    $tables_with_correctable_collation_issues[] = $table_name;
+                }
+                $issues[] = $field_message;
             }
-            if ($field_info['Type'] === 'datetime' && $field_info['Default'] === "'0000-00-00 00:00:00'") {
+            if (($field_info['Type'] === 'datetime' || $field_info['Type'] === 'timestamp') && $field_info['Default'] === "'0000-00-00 00:00:00'") {
                 $field_date_default_zero++;
-                $issues[] = "$field_name Default 0";
+                $issues[] = "<code>$field_name</code> Default 0";
             }
             if ($field_info['Type'] === 'date' && $field_info['Default'] === "'0000-00-00'") {
                 $field_date_default_zero++;
-                $issues[] = "$field_name Default 0";
+                $issues[] = "<code>$field_name</code> Default 0";
             }
             if ($field_info['known_field_type'] === false) {
                 $unknown_field_type_count++;
-                $issues[] = "$field_name, field-type unknown";
+                $issues[] = "<code>$field_name</code>, field-type unknown: <code>{$field_info['Type']}</code>";
             }
         }
 
@@ -523,7 +567,6 @@ if (isset($_POST['action'])) {
         if ($issues === []) {
             $issues = 'None';
         } else {
-            $error = true;
             $issues = '<ul><li>' . implode('</li><li>', $issues) . '</li></ul>';
         }
 ?>
@@ -541,18 +584,67 @@ if (isset($_POST['action'])) {
                 </tr>
                 <tr>
                     <td>
+                        <ul>
 <?php
-    if ($error === false) {
-        if ($db_charset_mismatch === false) {
+    // -----
+    // List out any issues found in the database.
+    //
+    $database_issues_count = 0;
+    if ($db_charset_mismatch === true) {
 ?>
-                        <p>Congratulations, no database issues were found.</p>
+                            <li>The database's character-set doesn't match <code>DB_CHARSET</code>.</li>
 <?php
-        } else {
+    }
+    if ($correctable_table_collation_mismatches !== 0) {
+        $database_issues_count++;
 ?>
-                        <p>No database issues were found, but the database's character-set doesn't match <code>DB_CHARSET</code>.</p>
+                            <li><?php echo $correctable_table_collation_mismatches; ?> tables don't have the same collation as the base database's. These issues can be corrected without a full database conversion.</li>
 <?php
-        }
-
+    }
+    if ($correctable_field_collation_mismatches !== 0) {
+        $database_issues_count++;
+?>
+                            <li><?php echo $correctable_field_collation_mismatches; ?> fields don't have the same collation as the base database's. These issues can be corrected without a full database conversion.</li>
+<?php
+    }
+    if ($convertable_table_collation_mismatches !== 0) {
+        $database_issues_count++;
+?>
+                            <li><?php echo $convertable_table_collation_mismatches; ?> tables don't have the same collation as the base database's<sup>1</sup>.</li>
+<?php
+    }
+    if ($convertable_field_collation_mismatches !== 0) {
+        $database_issues_count++;
+?>
+                            <li><?php echo $convertable_field_collation_mismatches; ?> fields don't have the same collation as the base database's<sup>1</sup>.</li>
+<?php
+    }
+    if ($field_date_default_zero !== 0) {
+        $database_issues_count++;
+?>
+                            <li><?php echo $field_date_default_zero; ?> <code>date/datetime/timestamp</code> fields have a zero-date default.  This must be corrected before any character-set and/or collation modifications are made to the database.</li>
+<?php
+    }
+    if ($unknown_field_type_count !== 0) {
+        $database_issues_count++;
+?>
+                            <li><?php echo $unknown_field_type_count; ?> fields have an unknown character-based <code>field-type</code>. This prevents any character-set and/or collation modifications to be made to the database.</li>
+<?php
+    }
+     if ($database_issues_count === 0) {
+?>
+                            <li>Congratulations, no database issues were found.</li>
+<?php
+    }
+?>
+                        </ul>
+<?php
+    // -----
+    // So long as there aren't any date/datetime fields with a 'zero-date' default and no
+    // unknown field types, character-set and collation changes to the database can be performed
+    // without those causing issues.
+    //
+    if ($field_date_default_zero === 0 && $unknown_field_type_count === 0) {
         // -----
         // Determine whether 'utf8mb4' should be offered as a potential update.  If the database
         // hasn't been run through the zc156 (or later) zc_install process, the various character-field
@@ -571,7 +663,7 @@ if (isset($_POST['action'])) {
         if ($current_charset === 'latin1') {
             $charset_options[] = 'utf8';
         }
-        if ($offer_utf8mb4 === true && ($current_charset === 'latin1' || $current_charset === 'utf8')) {
+        if ($offer_utf8mb4 === true) {
             $charset_options[] = 'utf8mb4';
         }
         if ($charset_options === []) {
@@ -586,7 +678,7 @@ if (isset($_POST['action'])) {
             }
         } else {
 ?>
-                        <p>If you want to update the database's character-set and associated collation, start by selecting a character-set from the list below:</p>
+                        <p>To convert the database's character-set and/or associated collation, start by selecting a character-set from the list below:</p>
                         <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post" id="choose-charset">
                             <select name="new_charset">
 <?php
@@ -603,39 +695,16 @@ if (isset($_POST['action'])) {
                         </form>
 <?php
         }
-    } else {
+        if ($tables_with_correctable_collation_issues !== []) {
+            $tables_with_correctable_collation_issues = array_unique($tables_with_correctable_collation_issues);
 ?>
-                        <p>One or more issues found with the database:</p>
-                        <ol id="issues-list">
-<?php
-        if ($db_charset_mismatch === true) {
-?>
-                            <li>The database's character-set doesn't match <code>DB_CHARSET</code>.</li>
-<?php
-        }
-        if ($table_collation_mismatches !== 0) {
-?>
-                            <li><?php echo $table_collation_mismatches; ?> tables don't have the same collation as the base database's.</li>
+                        <p><?php echo count($tables_with_correctable_collation_issues); ?> tables (or their fields) don't have the same collation as the base database's.  These issues can be corrected without a full conversion of the database's character-set.</p>
+                        <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post" id="fixcollations">
+                            <button type="submit" name="action" value="fixcollations">Correct Table/Field Collations</button>
+                            <input type="hidden" name="tablenames" value="<?php echo implode(',', $tables_with_correctable_collation_issues); ?>">
+                        </form>
 <?php
         }
-        if ($field_collation_mismatches !== 0) {
-?>
-                            <li><?php echo $field_collation_mismatches; ?> fields don't have the same collation as the base database's.</li>
-<?php
-        }
-        if ($field_date_default_zero !== 0) {
-?>
-                            <li><?php echo $field_date_default_zero; ?> date/datetime fields have a 0-date default.</li>
-<?php
-        }
-        if ($unknown_field_type_count !== 0) {
-?>
-                            <li><?php echo $unknown_field_type_count; ?> fields have an unknown character-based <code>field-type</code>.</li>
-<?php
-        }
-?>
-                        </ol>
-<?php
     }
 ?>
                         <hr>
@@ -649,17 +718,6 @@ if (isset($_POST['action'])) {
     }
 ?>
                         </form>
-<?php
-    if ($unknown_field_type_count === 0 && $field_date_default_zero === 0 && $tables_with_collation_issues !== []) {
-        $tables_with_collation_issues = array_unique($tables_with_collation_issues);
-?>
-                        <form action="<?php echo $_SERVER['PHP_SELF']; ?>" method="post" id="fixcollations">
-                            <button type="submit" name="action" value="fixcollations">Correct Table/Field Collations</button>
-                            <input type="hidden" name="tablenames" value="<?php echo implode(',', $tables_with_collation_issues); ?>">
-                        </form>
-<?php
-    }
-?>
                     </td>
                 </tr>
             </table></td>
