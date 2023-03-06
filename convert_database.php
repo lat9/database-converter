@@ -33,6 +33,7 @@
  *
  * Also, MySQL 5.7 or newer is recommended in order to benefit from the "more complete" utf8mb4_unicode_520_ci collation.
  */
+define('ZCDB_VERSION', 'v2.0.0-beta1');
 error_reporting(E_ALL);
 
 // -----
@@ -50,6 +51,7 @@ $cdb = new ConvertDb();
     <style>
     body {
         font-family: Arial, Helvetica, sans-serif;
+        font-size: 85%;
     }
     #db-stats td:nth-of-type(1) {
         font-weight: bold;
@@ -108,7 +110,7 @@ $cdb = new ConvertDb();
 </head>
 <body>
     <div class="wrap">
-        <h1>Zen Cart&reg; Database Conversion Tool</h1>
+        <h1>Zen Cart&reg; Database Conversion Tool &mdash; <small><?php echo ZCDB_VERSION; ?></small></h1>
 <?php
 // -----
 // Retrieve the current database's tables and associated fields.
