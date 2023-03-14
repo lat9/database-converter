@@ -33,7 +33,7 @@
  *
  * Also, MySQL 5.7 or newer is recommended in order to benefit from the "more complete" utf8mb4_unicode_520_ci collation.
  */
-define('ZCDB_VERSION', 'v2.0.0-beta1');
+define('ZCDB_VERSION', 'v2.0.0');
 error_reporting(E_ALL);
 
 // -----
