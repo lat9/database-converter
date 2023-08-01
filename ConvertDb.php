@@ -733,11 +733,11 @@ class ConvertDb
 
     protected function doQuery($sql)
     {
-        try { 
+        try {
             $ret = mysqli_query($this->link, $sql);
         } catch (Exception $e) {
             $ret = false;
-        } 
+        }
         if ($ret === false) {
             $this->errorMsg = '<code>' . $sql . '</code><br>' . mysqli_errno($this->link) . ': ' . mysqli_error($this->link) . '<br>';
         } else {

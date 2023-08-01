@@ -39,7 +39,7 @@
     <header>
         <nav id="navbar-header" class="navbar position-fixed navbar-light bg-light shadow-sm justify-content-center align-items-center container-fluid py-3">
             <div class="container">
-            <h1 class="mb-1 fs-4">Zen Cart Database Conversion Tool</h1>
+            <h1 class="mb-1 fs-4">Zen Cart Database Conversion Tool <small>v2.0.1</small></h1>
                 <div class="float-md-right text-center text-md-right mt-2 mt-md-0">
                     <i class="bi-github me-1 align-top"></i> <a href="https://github.com/lat9/database-converter" target="_blank" class="link-secondary text-decoration-none me-4">GitHub Repository</a>
                     <i class="bi-layout-text-sidebar-reverse me-1 align-top"></i> <a href="https://www.zen-cart.com/showthread.php?219246" target="_blank" class="link-secondary text-decoration-none">Support Thread</a>
@@ -172,6 +172,13 @@
                     <h1 id="item-changelog" class="display-1 fs-2 pb-2 pt-4">Change History</h1>
                     <p>You can view the details of these changes on the tool's <a href="https://github.com/lat9/database-converter" target="_blank" class="link-secondary">GitHub repository</a>.</p>
                     <ul>
+                       <li>v2.0.1, 2023-08-01 (lat9, scottcwilson):<ul>
+                            <li>BUGFIX: Starting with PHP 8.1, <var>mysqli_query</var> errors result in an exception.</li>
+                            <li>The following files were changed:<ol>
+                                <li>convert_database.php</li>
+                                <li>ConvertDb.php</li>
+                            </ol></li>
+                        </ul></li>
                         <li>v2.0.0, 2023-03-14 (lat9):<ul>
                             <li>CHANGE: Merge the <code>convert_db2utf8</code> and <code>utf8mb4-conversion</code> utilities.</li>
                             <li>CHANGE: Migrate database-related actions to a separate class.</li>
