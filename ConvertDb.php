@@ -362,6 +362,16 @@ class ConvertDb
         //
         $fields_updated = 0;
         if ($this->tables[$table_name]['info']['has_text_fields'] === true) {
+
+            $constraints = $this->getTableConstraints($table_name);
+            $sql = "ALTER TABLE `$table_name`";
+            foreach ($constraints as $index_name => $index_info) {
+                $sql .= " DROP CONSTRAINT `$index_name`,";
+            }
+            $sql = rtrim($sql, ',');
+            if ($this->doQuery($sql) === false) {
+                return false;
+            }
             // -----
             // Determine the table's current indices, dropping them to start, since the
             // re-collation of any character-based field will cause the index to go invalid.
@@ -392,6 +402,14 @@ class ConvertDb
             set_time_limit(120);
             foreach ($indices as $index_name => $index_info) {
                 $sql = "CREATE " . $index_info['unique'] . "INDEX `$index_name` ON `$table_name` (" . implode(', ', $index_info['columns']) . ")";
+                if ($this->doQuery($sql) === false) {
+                    return false;
+                }
+            }
+
+            foreach ($constraints as $name => $constraintInfo) {
+                $sql = "ALTER TABLE $table_name ADD CONSTRAINT $name FOREIGN KEY ( " . $constraintInfo['foreign_key'] . ') REFERENCES ' .
+                    $constraintInfo['referenced_table'] . '(' . $constraintInfo['referenced_column'] . ')';
                 if ($this->doQuery($sql) === false) {
                     return false;
                 }
@@ -438,6 +456,39 @@ class ConvertDb
         $collation_split = explode('_', $collation);
 
         return $collation_split[0];
+    }
+
+    protected function getTableConstraints($table_name)
+    {
+        $sql = "SELECT 
+                   TABLE_NAME,COLUMN_NAME,CONSTRAINT_NAME, REFERENCED_TABLE_NAME,REFERENCED_COLUMN_NAME
+                FROM
+                   INFORMATION_SCHEMA.KEY_COLUMN_USAGE
+                WHERE table_schema = '$this->dbDatabase' 
+                AND table_name =  '$table_name'";
+        $query = $this->doQuery($sql);
+        if ($query === false) {
+            return false;
+        }
+
+        $constraints = [];
+        while (($row = mysqli_fetch_assoc($query)) !== null) {
+            $index_name = $row['CONSTRAINT_NAME'];
+            if ($index_name === 'PRIMARY') {
+                continue;
+            }
+            if (isset($constraints[$index_name])) {
+                // not doing multi-level foreign constraints
+            } else {
+                $constraints[$index_name] = [
+                    'foreign_key' => $row['COLUMN_NAME'],
+                    'referenced_table' => $row['REFERENCED_TABLE_NAME'],
+                    'referenced_column' => $row['REFERENCED_COLUMN_NAME'],
+                ];
+            }
+        }
+
+        return $constraints;
     }
 
     protected function getTableIndices($table_name)
