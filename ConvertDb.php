@@ -316,7 +316,7 @@ class ConvertDb
                 $correct_value = '0001-01-01';
             } elseif ($field_info['Type'] === 'datetime' || $field_info['Type'] === 'timestamp') {
                 $zero_value = '0000-00-00 00:00:00';
-                $correct_value = ($field_info['Type'] === 'datetime') ? '1970-01-01 00:00:00' : '0001-01-01 00:00:00';
+                $correct_value = ($field_info['Type'] === 'datetime') ? '0001-01-01 00:00:00' : '1970-01-01 00:00:00';
             } else {
                 continue;
             }
